@@ -1,0 +1,8 @@
+# Claude Code ローカル設定・セッション
+.claude/
+
+# Playwright 実証時の一時生成物
+.playwright-mcp/
+
+# Node
+node_modules/
