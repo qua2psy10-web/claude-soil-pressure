@@ -6,17 +6,21 @@
 
   function geometry(p, omega) {
     const { H, beta } = p;
-    if (!(omega > beta && omega < 90)) return { valid: false };
-    const xB = H / (tanDeg(omega) - tanDeg(beta));
+    const theta = p.theta || 0;
+    const xT = H * tanDeg(theta);
+    const lambda = Math.atan2(H, xT) * 180 / Math.PI; // 壁面の傾き角（度）
+    if (!(omega > beta && omega < lambda)) return { valid: false };
+    const xB = H * (1 - tanDeg(theta) * tanDeg(beta)) / (tanDeg(omega) - tanDeg(beta));
+    if (!(xB > xT)) return { valid: false };
     const yB = xB * tanDeg(omega);
-    const A = 0.5 * xB * H;
+    const A = 0.5 * Math.abs(xT * yB - xB * H);
     const L = xB / cosDeg(omega);
     return {
       valid: true,
       O: { x: 0, y: 0 },
-      T: { x: 0, y: H },
+      T: { x: xT, y: H },
       B: { x: xB, y: yB },
-      xB, yB, A, L,
+      xT, xB, yB, A, L,
     };
   }
 

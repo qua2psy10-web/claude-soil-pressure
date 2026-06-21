@@ -65,3 +65,25 @@ test('sweep: Pₐは理論値 ½γH²Kₐ に一致', () => {
   const theory = 0.5 * 18 * 25 * TW.rankineKa(30);
   assert.ok(Math.abs(s.Pa - theory) < 0.2, `Pa=${s.Pa} theory=${theory}`);
 });
+
+test('geometry: θ=0 は従来と不変（回帰）', () => {
+  const g = TW.geometry({ H: 5, beta: 0 }, 45); // theta未指定→0
+  assert.ok(g.valid);
+  assert.ok(Math.abs(g.xB - 5) < 1e-9);
+  assert.ok(Math.abs(g.A - 12.5) < 1e-9);
+  assert.deepStrictEqual(g.T, { x: 0, y: 5 });
+  assert.ok(Math.abs(g.xT - 0) < 1e-12);
+});
+
+test('geometry: θ=10 で壁天端が土側へ寄り xT=H·tanθ', () => {
+  const g = TW.geometry({ H: 5, beta: 0, theta: 10 }, 45);
+  assert.ok(g.valid);
+  assert.ok(Math.abs(g.xT - 5 * Math.tan(Math.PI / 18)) < 1e-9); // 5*tan10°
+  assert.ok(Math.abs(g.T.x - g.xT) < 1e-12 && g.T.y === 5);
+  assert.ok(Math.abs(g.xB - 5) < 1e-9); // β=0 → xB = H/tanω = 5
+});
+
+test('geometry: θ>0 で有効ω上限が λ=atan(H/xT) になる', () => {
+  assert.strictEqual(TW.geometry({ H: 5, beta: 0, theta: 10 }, 85).valid, false); // ω>λ → 無効
+  assert.strictEqual(TW.geometry({ H: 5, beta: 0, theta: 10 }, 70).valid, true);
+});
