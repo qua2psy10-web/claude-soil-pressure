@@ -24,6 +24,12 @@
 </head>
 <body>
 <header><h1>試行楔法による土圧計算ウォーク</h1></header>
+<div id="stepper" class="panel" style="margin:16px;display:flex;align-items:center;gap:12px">
+  <button id="prevStep">← 戻る</button>
+  <div id="stepText" style="flex:1;font-size:13px"></div>
+  <button id="nextStep">次へ →</button>
+  <button id="freeBtn">自由モードへ</button>
+</div>
 <div class="wrap">
   <section class="panel" id="inputs">
     <h2>① 入力</h2>
@@ -99,6 +105,26 @@
     animId = requestAnimationFrame(frame);
   }
   document.getElementById('autoBtn').addEventListener('click', autoFind);
+
+  const STEPS = [
+    '【1】問題設定：擁壁が支える土から壁にかかる「主働土圧 Pₐ」を、試行楔法で求めます。',
+    '【2】くさびを仮定：すべり面の角度 ω を1つ仮定します。スライダーを動かしてみましょう。',
+    '【3】自重 W：くさび（橙の三角形）の重さを面積×γで計算します。',
+    '【4】粘着力 C：すべり面に沿う抵抗 C = c·L（c=0なら0）。',
+    '【5】力のつり合い：V・C・R・P が閉じる多角形（③）から P が決まります。',
+    '【6】試行：ω を変えると P が変化（④の曲線）。最大が Pₐ です。「最大値を自動で探す」を押してみましょう。',
+    '【7】完了：最大の P が主働土圧 Pₐ、その面が臨界すべり面。作用位置は下端から H/3 です。',
+  ];
+  let stepIdx = 0;
+  function renderStep() {
+    document.getElementById('stepText').textContent = STEPS[stepIdx];
+    document.getElementById('prevStep').disabled = stepIdx === 0;
+    document.getElementById('nextStep').disabled = stepIdx === STEPS.length - 1;
+  }
+  document.getElementById('nextStep').addEventListener('click', () => { if (stepIdx < STEPS.length - 1) { stepIdx++; renderStep(); } });
+  document.getElementById('prevStep').addEventListener('click', () => { if (stepIdx > 0) { stepIdx--; renderStep(); } });
+  document.getElementById('freeBtn').addEventListener('click', () => { document.getElementById('stepper').style.display = 'none'; });
+  renderStep();
 
   ids.forEach((id) => document.getElementById(id).addEventListener('input', recompute));
   document.addEventListener('DOMContentLoaded', recompute);
