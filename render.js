@@ -69,7 +69,9 @@
     if (!s.omegas.length) return;
     const vb = svg.viewBox.baseVal, pad = 34;
     const wMin = s.omegas[0], wMax = s.omegas[s.omegas.length - 1];
-    const pMin = Math.min(0, ...s.Ps), pMax = Math.max(...s.Ps) || 1;
+    // 低ω域で P が大きな負値（主働状態が成立しない領域、表示上は 0 にクランプ）
+    // になりy軸が潰れるのを防ぐため、表示域を 0〜最大 に固定する。
+    const pMin = 0, pMax = Math.max(...s.Ps) || 1;
     const mapX = (w) => pad + (w - wMin) / ((wMax - wMin) || 1) * (vb.width - 2 * pad);
     const mapY = (P) => vb.height - pad - (P - pMin) / ((pMax - pMin) || 1) * (vb.height - 2 * pad);
     svg.appendChild(el('line', { x1: pad, y1: vb.height - pad, x2: vb.width - pad, y2: vb.height - pad, stroke: '#888' }));
@@ -78,7 +80,7 @@
     const ay = el('text', { x: pad - 4, y: pad - 6, 'font-size': 11, fill: '#556' }); ay.textContent = 'P (kN/m)';
     svg.appendChild(ax); svg.appendChild(ay);
     let d = '';
-    for (let i = 0; i < s.omegas.length; i++) d += (i ? 'L' : 'M') + mapX(s.omegas[i]) + ' ' + mapY(s.Ps[i]) + ' ';
+    for (let i = 0; i < s.omegas.length; i++) d += (i ? 'L' : 'M') + mapX(s.omegas[i]) + ' ' + mapY(Math.max(s.Ps[i], 0)) + ' ';
     svg.appendChild(el('path', { d, fill: 'none', stroke: '#0066b3', 'stroke-width': 2 }));
     if (s.omegaCrit != null) {
       svg.appendChild(el('circle', { cx: mapX(s.omegaCrit), cy: mapY(s.PaRaw), r: 5, fill: '#b00' }));
@@ -87,7 +89,7 @@
       svg.appendChild(t);
     }
     const cur = lookupP(s, ctx.omega);
-    if (cur != null) svg.appendChild(el('circle', { cx: mapX(ctx.omega), cy: mapY(cur), r: 4, fill: '#234', stroke: '#fff' }));
+    if (cur != null) svg.appendChild(el('circle', { cx: mapX(ctx.omega), cy: mapY(Math.max(cur, 0)), r: 4, fill: '#234', stroke: '#fff' }));
   }
   function lookupP(s, omega) {
     let best = null, bd = Infinity;
