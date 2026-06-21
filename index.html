@@ -41,7 +41,7 @@
       <label><span>粘着力 c (kN/m²)</span><input type="number" id="c" value="0" step="1" min="0"></label>
       <label><span>上載荷重 q (kN/m²)</span><input type="number" id="q" value="0" step="1" min="0"></label>
       <label><span>裏込め勾配 β (°)</span><input type="number" id="beta" value="0" step="1" min="0" max="30"></label>
-      <label><span>壁背面傾斜 θ (°)</span><input type="number" id="theta" value="0" step="1" min="0" max="25"></label>
+      <label><span>壁背面傾斜 θ (°)（負=オーバーハング）</span><input type="number" id="theta" value="0" step="1" min="-25" max="25"></label>
     </div>
     <div class="omega-row">
       <label><span>試行くさび角 ω = <span class="val" id="omegaVal">45</span>°</span>
@@ -83,7 +83,7 @@
     if (p.delta < 0 || p.delta > p.phi) msgs.push('壁面摩擦角 δ は 0〜φ の範囲が一般的です。');
     if (p.c < 0) msgs.push('粘着力 c は 0 以上にしてください。');
     if (p.beta < 0 || p.beta >= p.phi) msgs.push('裏込め勾配 β は 0〜φ 未満にしてください。');
-    if (p.theta < 0 || p.theta > 25) msgs.push('壁背面傾斜 θ は 0〜25° の範囲で。');
+    if (p.theta < -25 || p.theta > 25) msgs.push('壁背面傾斜 θ は −25〜25° の範囲で。');
     if (TW.tanDeg(p.theta) * TW.tanDeg(p.beta) >= 1) msgs.push('θ と β の組み合わせが幾何的に成立しません。');
     return msgs;
   }
