@@ -47,7 +47,29 @@
     return { valid: true, geom: g, W, Q, V, C, L: g.L, A: g.A, P, R, omega, vectors };
   }
 
-  const api = { deg2rad, tanDeg, sinDeg, cosDeg, geometry, solveWedge };
+  function rankineKa(phi) {
+    const t = tanDeg(45 - phi / 2);
+    return t * t;
+  }
+
+  function sweep(p, opts = {}) {
+    const step = opts.step || 0.25;
+    const eps = 0.001;
+    const omegas = [];
+    const Ps = [];
+    let Pa = -Infinity;
+    let omegaCrit = null;
+    for (let w = p.beta + step; w < 90 - eps; w += step) {
+      const r = solveWedge(p, w);
+      if (!r.valid) continue;
+      omegas.push(w);
+      Ps.push(r.P);
+      if (r.P > Pa) { Pa = r.P; omegaCrit = w; }
+    }
+    return { omegas, Ps, Pa: Math.max(Pa, 0), PaRaw: Pa, omegaCrit };
+  }
+
+  const api = { deg2rad, tanDeg, sinDeg, cosDeg, geometry, solveWedge, rankineKa, sweep };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.TrialWedge = api;
