@@ -142,6 +142,14 @@
 
   ids.forEach((id) => document.getElementById(id).addEventListener('input', recompute));
   document.addEventListener('DOMContentLoaded', recompute);
+
+  // 開発用セルフテスト（c=0,δ=0,β=0,φ=30,γ=18,H=5 → Pₐ≈75, ω≈60）
+  (function selfTest() {
+    const s = TW.sweep({ H: 5, gamma: 18, phi: 30, delta: 0, c: 0, q: 0, beta: 0 }, { step: 0.25 });
+    const okPa = Math.abs(s.Pa - 75) < 0.2;
+    const okW = Math.abs(s.omegaCrit - 60) < 0.5;
+    console.log(`[selfTest] Pa=${s.Pa.toFixed(2)} (期待75) ${okPa ? 'OK' : 'NG'}, ωcrit=${s.omegaCrit.toFixed(1)} (期待60) ${okW ? 'OK' : 'NG'}`);
+  })();
 </script>
 </body>
 </html>
