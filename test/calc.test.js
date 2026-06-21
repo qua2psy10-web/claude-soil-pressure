@@ -108,3 +108,23 @@ test('傾斜壁: θを増やすと Pₐ が減る（土側に倒れる壁）', (
   const p10 = { ...p0, theta: 10 };
   assert.ok(TW.sweep(p10, { step: 0.1 }).Pa < TW.sweep(p0, { step: 0.1 }).Pa);
 });
+
+test('オーバーハング: θ=-10 のスイープ最大が Coulomb 一般式と一致', () => {
+  const p = { H: 5, gamma: 18, phi: 30, delta: 15, c: 0, q: 0, beta: 0, theta: -10 };
+  const s = TW.sweep(p, { step: 0.05 });
+  const theory = 0.5 * 18 * 25 * TW.coulombKa(30, 15, 0, 10); // θ=-10 → Dasの+10
+  assert.ok(Math.abs(s.Pa - theory) / theory < 0.01, `Pa=${s.Pa} theory=${theory}`);
+});
+
+test('オーバーハング: θ<0 で Pₐ が θ=0 より増える', () => {
+  const p0 = { H: 5, gamma: 18, phi: 30, delta: 15, c: 0, q: 0, beta: 0, theta: 0 };
+  const pNeg = { ...p0, theta: -10 };
+  assert.ok(TW.sweep(pNeg, { step: 0.1 }).Pa > TW.sweep(p0, { step: 0.1 }).Pa);
+});
+
+test('オーバーハング: θ=-15 で xT が負（壁天端が土と反対側）', () => {
+  const g = TW.geometry({ H: 5, beta: 0, theta: -15 }, 45);
+  assert.ok(g.valid);
+  assert.ok(g.xT < 0, `xT=${g.xT}`);
+  assert.ok(Math.abs(g.xT - 5 * Math.tan(-15 * Math.PI / 180)) < 1e-9);
+});
