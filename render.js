@@ -98,10 +98,27 @@
     return best;
   }
 
+  function explain(div, ctx) {
+    const w = ctx.wedge;
+    if (!w.valid) { div.innerHTML = '<p style="color:#b00">この ω では有効なくさびになりません（β &lt; ω &lt; 90 にしてください）。</p>'; return; }
+    const g = w.geom, p = ctx.p, o = ctx.omega;
+    const f = (n) => Number(n).toFixed(2);
+    div.innerHTML = `
+      <ol style="font-size:13px;line-height:1.7;padding-left:18px">
+        <li><b>くさびの幾何</b>：すべり面長 L = xB/cosω = ${f(g.xB)}/cos${o}° = <b>${f(g.L)} m</b>、面積 A = ½·xB·H = <b>${f(g.A)} m²</b></li>
+        <li><b>自重 W</b> = γ·A = ${f(p.gamma)}×${f(g.A)} = <b>${f(w.W)} kN/m</b>${p.q ? `、上載 Q = q·xB = ${f(w.Q)} kN/m` : ''}（合計鉛直 V = <b>${f(w.V)} kN/m</b>）</li>
+        <li><b>粘着力 C</b> = c·L = ${f(p.c)}×${f(g.L)} = <b>${f(w.C)} kN/m</b></li>
+        <li><b>力のつり合い</b>（V・C・R・P の多角形が閉じる）から <b>P = ${f(w.P)} kN/m</b>（反力 R = ${f(w.R)} kN/m）</li>
+        <li><b>試行</b>：ω を変えると右上の P–ω 曲線が動きます。最大の P が<b>主働土圧 Pₐ</b>です。</li>
+      </ol>
+      <p style="font-size:12px;color:#556">現在の最大：Pₐ = <b>${ctx.sweepRes.Pa.toFixed(2)} kN/m</b>（臨界 ω = ${ctx.sweepRes.omegaCrit?.toFixed(1)}°、作用位置 = 下端から H/3 = ${(p.H / 3).toFixed(2)} m）</p>`;
+  }
+
   function drawAll(ctx) {
     drawSection(document.getElementById('sectionSvg'), ctx);
     drawForcePolygon(document.getElementById('polySvg'), ctx);
     drawCurve(document.getElementById('curveSvg'), ctx);
+    explain(document.getElementById('explain'), ctx);
   }
-  window.Render = { drawAll, drawSection, drawForcePolygon, drawCurve };
+  window.Render = { drawAll, drawSection, drawForcePolygon, drawCurve, explain };
 })();
