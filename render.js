@@ -10,7 +10,7 @@
   // 物理座標(x:0..,y:0..H 付近, y上向き) → SVG座標へ
   function makeMap(svg, geom, pad) {
     const vb = svg.viewBox.baseVal;
-    const xs = [0, geom.B.x], ys = [0, geom.T.y, geom.B.y];
+    const xs = [0, geom.T.x, geom.B.x], ys = [0, geom.T.y, geom.B.y];
     const xmax = Math.max(...xs) * 1.15 || 1;
     const ymax = Math.max(...ys) * 1.15 || 1;
     const sx = (vb.width - 2 * pad) / xmax;
