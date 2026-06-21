@@ -31,10 +31,13 @@
     const g = geometry(p, omega);
     if (!g.valid) return { valid: false };
     const { gamma, phi, delta, c, q } = p;
+    const gammaw = p.gammaw || 0;
+    const Hw = Math.min(p.Hw || 0, p.H);
 
-    const W = gamma * g.A;
+    const W = gamma * g.A;            // 総自重（解説で対比用に保持）
+    const Weff = W - gammaw * g.Aw;   // 有効自重（水位以下は浮力を差し引く）
     const Q = q * (g.xB - g.xT);
-    const V = W + Q;
+    const V = Weff + Q;
     const C = c * g.L;
 
     const rAng = omega + 90 - phi; // R の向き（度）
@@ -47,6 +50,8 @@
     const P = (d1 * b2 - d2 * b1) / det;
     const R = (a1 * d2 - a2 * d1) / det;
 
+    const Pw = 0.5 * gammaw * Hw * Hw; // 壁への静水圧合力（水平）
+
     const vectors = [
       { label: 'V', fx: 0, fy: -V },
       { label: 'C', fx: C * cosDeg(omega), fy: C * sinDeg(omega) },
@@ -54,7 +59,7 @@
       { label: 'P', fx: P * cosDeg(pAng), fy: P * sinDeg(pAng) },
     ];
 
-    return { valid: true, geom: g, W, Q, V, C, L: g.L, A: g.A, P, R, omega, vectors };
+    return { valid: true, geom: g, W, Weff, Q, V, C, L: g.L, A: g.A, Aw: g.Aw, P, R, Pw, omega, vectors };
   }
 
   function rankineKa(phi) {

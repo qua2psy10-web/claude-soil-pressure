@@ -144,3 +144,31 @@ test('geometry: 部分水没 Hw<H で 0 < Aw < A', () => {
   assert.ok(g.Aw > 0 && g.Aw < g.A, `Aw=${g.Aw} A=${g.A}`);
   assert.ok(Math.abs(g.Aw - 3.125) < 1e-9, `Aw=${g.Aw}`); // 0.5*2.5^2*cot45
 });
+
+test('solveWedge: Hw=0 は従来と不変（Rankine P=75 回帰）', () => {
+  assert.ok(Math.abs(TW.solveWedge(P_BASE, 60).P - 75.0) < 1e-6);
+  assert.ok(Math.abs(TW.solveWedge(P_BASE, 60).Pw - 0) < 1e-12);
+});
+
+test('完全水没: スイープ最大 P′ = ½γ′H²Ka（γ′=γ−γw）', () => {
+  const p = { H: 5, gamma: 18, phi: 30, delta: 0, c: 0, q: 0, beta: 0, Hw: 5, gammaw: 9.8 };
+  const s = TW.sweep(p, { step: 0.05 });
+  const theory = 0.5 * (18 - 9.8) * 25 * TW.rankineKa(30);
+  assert.ok(Math.abs(s.Pa - theory) < 0.1, `Pa=${s.Pa} theory=${theory}`);
+});
+
+test('完全水没: 静水圧 Pw = ½γw·H²', () => {
+  const p = { H: 5, gamma: 18, phi: 30, delta: 0, c: 0, q: 0, beta: 0, Hw: 5, gammaw: 9.8 };
+  const r = TW.solveWedge(p, 60);
+  assert.ok(Math.abs(r.Pw - 0.5 * 9.8 * 25) < 1e-9, `Pw=${r.Pw}`);
+});
+
+test('部分水没: Hw↑ で P′↓・Pw↑', () => {
+  const base = { H: 5, gamma: 18, phi: 30, delta: 15, c: 0, q: 0, beta: 0, gammaw: 9.8 };
+  const dry = TW.sweep({ ...base, Hw: 0 }, { step: 0.1 });
+  const wet = TW.sweep({ ...base, Hw: 3 }, { step: 0.1 });
+  assert.ok(wet.Pa < dry.Pa, `wetPa=${wet.Pa} dryPa=${dry.Pa}`);
+  const PwDry = TW.solveWedge({ ...base, Hw: 0 }, 55).Pw;
+  const PwWet = TW.solveWedge({ ...base, Hw: 3 }, 55).Pw;
+  assert.ok(PwWet > PwDry, `PwWet=${PwWet} PwDry=${PwDry}`);
+});
