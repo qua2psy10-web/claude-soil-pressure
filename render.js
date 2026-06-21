@@ -63,9 +63,45 @@
     }
   }
 
+  function drawCurve(svg, ctx) {
+    clear(svg);
+    const s = ctx.sweepRes;
+    if (!s.omegas.length) return;
+    const vb = svg.viewBox.baseVal, pad = 34;
+    const wMin = s.omegas[0], wMax = s.omegas[s.omegas.length - 1];
+    const pMin = Math.min(0, ...s.Ps), pMax = Math.max(...s.Ps) || 1;
+    const mapX = (w) => pad + (w - wMin) / ((wMax - wMin) || 1) * (vb.width - 2 * pad);
+    const mapY = (P) => vb.height - pad - (P - pMin) / ((pMax - pMin) || 1) * (vb.height - 2 * pad);
+    svg.appendChild(el('line', { x1: pad, y1: vb.height - pad, x2: vb.width - pad, y2: vb.height - pad, stroke: '#888' }));
+    svg.appendChild(el('line', { x1: pad, y1: pad, x2: pad, y2: vb.height - pad, stroke: '#888' }));
+    const ax = el('text', { x: vb.width - pad, y: vb.height - pad + 16, 'font-size': 11, fill: '#556', 'text-anchor': 'end' }); ax.textContent = 'ω (°)';
+    const ay = el('text', { x: pad - 4, y: pad - 6, 'font-size': 11, fill: '#556' }); ay.textContent = 'P (kN/m)';
+    svg.appendChild(ax); svg.appendChild(ay);
+    let d = '';
+    for (let i = 0; i < s.omegas.length; i++) d += (i ? 'L' : 'M') + mapX(s.omegas[i]) + ' ' + mapY(s.Ps[i]) + ' ';
+    svg.appendChild(el('path', { d, fill: 'none', stroke: '#0066b3', 'stroke-width': 2 }));
+    if (s.omegaCrit != null) {
+      svg.appendChild(el('circle', { cx: mapX(s.omegaCrit), cy: mapY(s.PaRaw), r: 5, fill: '#b00' }));
+      const t = el('text', { x: mapX(s.omegaCrit) + 6, y: mapY(s.PaRaw) - 6, 'font-size': 12, fill: '#b00', 'font-weight': 700 });
+      t.textContent = `Pₐ=${s.Pa.toFixed(1)} (ω=${s.omegaCrit.toFixed(1)}°)`;
+      svg.appendChild(t);
+    }
+    const cur = lookupP(s, ctx.omega);
+    if (cur != null) svg.appendChild(el('circle', { cx: mapX(ctx.omega), cy: mapY(cur), r: 4, fill: '#234', stroke: '#fff' }));
+  }
+  function lookupP(s, omega) {
+    let best = null, bd = Infinity;
+    for (let i = 0; i < s.omegas.length; i++) {
+      const d = Math.abs(s.omegas[i] - omega);
+      if (d < bd) { bd = d; best = s.Ps[i]; }
+    }
+    return best;
+  }
+
   function drawAll(ctx) {
     drawSection(document.getElementById('sectionSvg'), ctx);
     drawForcePolygon(document.getElementById('polySvg'), ctx);
+    drawCurve(document.getElementById('curveSvg'), ctx);
   }
-  window.Render = { drawAll, drawSection, drawForcePolygon };
+  window.Render = { drawAll, drawSection, drawForcePolygon, drawCurve };
 })();
