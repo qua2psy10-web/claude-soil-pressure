@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>試行楔法 土圧計算ウォーク</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; color: #1a1a1a; background: #f6f7f9; }
+  header { background: #234; color: #fff; padding: 12px 20px; }
+  header h1 { font-size: 18px; margin: 0; }
+  .wrap { display: grid; grid-template-columns: 280px 1fr; gap: 16px; padding: 16px; }
+  .panel { background: #fff; border: 1px solid #e2e5e9; border-radius: 8px; padding: 12px; }
+  .panel h2 { font-size: 14px; margin: 0 0 10px; color: #234; }
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: 12px; margin-bottom: 8px; }
+  label span { display: block; color: #556; margin-bottom: 2px; }
+  input[type=number] { width: 100%; box-sizing: border-box; padding: 4px 6px; }
+  .omega-row { margin-top: 8px; }
+  input[type=range] { width: 100%; }
+  .val { font-variant-numeric: tabular-nums; font-weight: 600; }
+  svg { width: 100%; height: auto; background: #fff; }
+  .err { color: #b00; font-size: 12px; min-height: 16px; }
+</style>
+</head>
+<body>
+<header><h1>試行楔法による土圧計算ウォーク</h1></header>
+<div id="stepper" class="panel" style="margin:16px;display:flex;align-items:center;gap:12px">
+  <button id="prevStep">← 戻る</button>
+  <div id="stepText" style="flex:1;font-size:13px"></div>
+  <button id="nextStep">次へ →</button>
+  <button id="freeBtn">自由モードへ</button>
+</div>
+<div class="wrap">
+  <section class="panel" id="inputs">
+    <h2>① 入力</h2>
+    <div class="grid4">
+      <label><span>壁高 H (m)</span><input type="number" id="H" value="5" step="0.5" min="0.5"></label>
+      <label><span>単位体積重量 γ (kN/m³)</span><input type="number" id="gamma" value="18" step="0.5" min="1"></label>
+      <label><span>内部摩擦角 φ (°)</span><input type="number" id="phi" value="30" step="1" min="0" max="45"></label>
+      <label><span>壁面摩擦角 δ (°)</span><input type="number" id="delta" value="15" step="1" min="0" max="30"></label>
+      <label><span>粘着力 c (kN/m²)</span><input type="number" id="c" value="0" step="1" min="0"></label>
+      <label><span>上載荷重 q (kN/m²)</span><input type="number" id="q" value="0" step="1" min="0"></label>
+      <label><span>裏込め勾配 β (°)</span><input type="number" id="beta" value="0" step="1" min="0" max="30"></label>
+    </div>
+    <div class="omega-row">
+      <label><span>試行くさび角 ω = <span class="val" id="omegaVal">45</span>°</span>
+        <input type="range" id="omega" min="1" max="89" value="45" step="0.5"></label>
+    </div>
+    <button id="autoBtn">最大値を自動で探す</button>
+    <div class="err" id="err"></div>
+  </section>
+
+  <section>
+    <div class="panel"><h2>② 断面図</h2><svg id="sectionSvg" viewBox="0 0 480 320"></svg></div>
+    <div class="panel" style="margin-top:16px"><h2>③ 力の多角形</h2><svg id="polySvg" viewBox="0 0 360 280"></svg></div>
+    <div class="panel" style="margin-top:16px"><h2>④ P–ω 曲線</h2><svg id="curveSvg" viewBox="0 0 480 240"></svg></div>
+    <div class="panel" style="margin-top:16px"><h2>ステップ解説</h2><div id="explain"></div></div>
+  </section>
+</div>
+<script src="calc.js"></script>
+<script src="render.js"></script>
+<script>
+  const TW = window.TrialWedge;
+  const ids = ['H', 'gamma', 'phi', 'delta', 'c', 'q', 'beta', 'omega'];
+  const state = {};
+
+  function readInputs() {
+    for (const id of ids) state[id] = parseFloat(document.getElementById(id).value);
+    document.getElementById('omegaVal').textContent = state.omega;
+  }
+
+  function params() {
+    return { H: state.H, gamma: state.gamma, phi: state.phi,
+             delta: state.delta, c: state.c, q: state.q, beta: state.beta };
+  }
+
+  function validate(p) {
+    const msgs = [];
+    if (!(p.H > 0)) msgs.push('壁高 H は正の値にしてください。');
+    if (!(p.gamma > 0)) msgs.push('単位体積重量 γ は正の値にしてください。');
+    if (p.phi < 0 || p.phi > 45) msgs.push('内部摩擦角 φ は 0〜45° の範囲で。');
+    if (p.delta < 0 || p.delta > p.phi) msgs.push('壁面摩擦角 δ は 0〜φ の範囲が一般的です。');
+    if (p.c < 0) msgs.push('粘着力 c は 0 以上にしてください。');
+    if (p.beta < 0 || p.beta >= p.phi) msgs.push('裏込め勾配 β は 0〜φ 未満にしてください。');
+    return msgs;
+  }
+  function recompute() {
+    readInputs();
+    const p = params();
+    const errBox = document.getElementById('err');
+    const msgs = validate(p);
+    errBox.textContent = msgs.join(' ');
+    if (msgs.length) return;
+    const sweepRes = TW.sweep(p, { step: 0.25 });
+    const wedge = TW.solveWedge(p, state.omega);
+    window.Render.drawAll({ p, omega: state.omega, wedge, sweepRes });
+  }
+
+  let animId = null;
+  function autoFind() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    readInputs();
+    const p = params();
+    const s = TW.sweep(p, { step: 0.25 });
+    if (s.omegaCrit == null) return;
+    const slider = document.getElementById('omega');
+    const start = parseFloat(slider.value);
+    const target = s.omegaCrit;
+    const t0 = performance.now();
+    const dur = 900;
+    function frame(now) {
+      const k = Math.min(1, (now - t0) / dur);
+      const w = start + (target - start) * k;
+      slider.value = w.toFixed(1);
+      recompute();
+      if (k < 1) animId = requestAnimationFrame(frame);
+      else { animId = null; slider.value = target.toFixed(1); recompute(); }
+    }
+    animId = requestAnimationFrame(frame);
+  }
+  document.getElementById('autoBtn').addEventListener('click', autoFind);
+
+  const STEPS = [
+    '【1】問題設定：擁壁が支える土から壁にかかる「主働土圧 Pₐ」を、試行楔法で求めます。',
+    '【2】くさびを仮定：すべり面の角度 ω を1つ仮定します。スライダーを動かしてみましょう。',
+    '【3】自重 W：くさび（橙の三角形）の重さを面積×γで計算します。',
+    '【4】粘着力 C：すべり面に沿う抵抗 C = c·L（c=0なら0）。',
+    '【5】力のつり合い：V・C・R・P が閉じる多角形（③）から P が決まります。',
+    '【6】試行：ω を変えると P が変化（④の曲線）。最大が Pₐ です。「最大値を自動で探す」を押してみましょう。',
+    '【7】完了：最大の P が主働土圧 Pₐ、その面が臨界すべり面。作用位置は下端から H/3 です。',
+  ];
+  let stepIdx = 0;
+  function renderStep() {
+    document.getElementById('stepText').textContent = STEPS[stepIdx];
+    document.getElementById('prevStep').disabled = stepIdx === 0;
+    document.getElementById('nextStep').disabled = stepIdx === STEPS.length - 1;
+  }
+  document.getElementById('nextStep').addEventListener('click', () => { if (stepIdx < STEPS.length - 1) { stepIdx++; renderStep(); } });
+  document.getElementById('prevStep').addEventListener('click', () => { if (stepIdx > 0) { stepIdx--; renderStep(); } });
+  document.getElementById('freeBtn').addEventListener('click', () => { document.getElementById('stepper').style.display = 'none'; });
+  renderStep();
+
+  ids.forEach((id) => document.getElementById(id).addEventListener('input', recompute));
+  document.addEventListener('DOMContentLoaded', recompute);
+
+  // 開発用セルフテスト（c=0,δ=0,β=0,φ=30,γ=18,H=5 → Pₐ≈75, ω≈60）
+  (function selfTest() {
+    const s = TW.sweep({ H: 5, gamma: 18, phi: 30, delta: 0, c: 0, q: 0, beta: 0 }, { step: 0.25 });
+    const okPa = Math.abs(s.Pa - 75) < 0.2;
+    const okW = Math.abs(s.omegaCrit - 60) < 0.5;
+    console.log(`[selfTest] Pa=${s.Pa.toFixed(2)} (期待75) ${okPa ? 'OK' : 'NG'}, ωcrit=${s.omegaCrit.toFixed(1)} (期待60) ${okW ? 'OK' : 'NG'}`);
+  })();
+</script>
+</body>
+</html>
