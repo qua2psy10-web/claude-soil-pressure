@@ -128,3 +128,19 @@ test('オーバーハング: θ=-15 で xT が負（壁天端が土と反対側�
   assert.ok(g.xT < 0, `xT=${g.xT}`);
   assert.ok(Math.abs(g.xT - 5 * Math.tan(-15 * Math.PI / 180)) < 1e-9);
 });
+
+test('geometry: Hw=0 は Aw=0（無水・回帰）', () => {
+  const g = TW.geometry({ H: 5, beta: 0 }, 45);
+  assert.ok(Math.abs(g.Aw - 0) < 1e-12, `Aw=${g.Aw}`);
+});
+
+test('geometry: 完全水没 Hw=H, θ=0 で Aw=全面積 A', () => {
+  const g = TW.geometry({ H: 5, beta: 0, Hw: 5 }, 45);
+  assert.ok(Math.abs(g.Aw - g.A) < 1e-9, `Aw=${g.Aw} A=${g.A}`);
+});
+
+test('geometry: 部分水没 Hw<H で 0 < Aw < A', () => {
+  const g = TW.geometry({ H: 5, beta: 0, Hw: 2.5 }, 45);
+  assert.ok(g.Aw > 0 && g.Aw < g.A, `Aw=${g.Aw} A=${g.A}`);
+  assert.ok(Math.abs(g.Aw - 3.125) < 1e-9, `Aw=${g.Aw}`); // 0.5*2.5^2*cot45
+});

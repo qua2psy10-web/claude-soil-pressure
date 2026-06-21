@@ -15,12 +15,15 @@
     const yB = xB * tanDeg(omega);
     const A = 0.5 * Math.abs(xT * yB - xB * H);
     const L = xB / cosDeg(omega);
+    const Hw = Math.min(p.Hw || 0, H); // 水位（下端からの高さ、Hでクランプ）
+    const cot = 1 / tanDeg(omega);
+    const Aw = 0.5 * Hw * Hw * Math.abs(tanDeg(theta) - cot); // 水位以下のくさび面積
     return {
       valid: true,
       O: { x: 0, y: 0 },
       T: { x: xT, y: H },
       B: { x: xB, y: yB },
-      xT, xB, yB, A, L,
+      xT, xB, yB, A, L, Aw,
     };
   }
 
