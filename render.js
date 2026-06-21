@@ -11,12 +11,12 @@
   function makeMap(svg, geom, pad) {
     const vb = svg.viewBox.baseVal;
     const xs = [0, geom.T.x, geom.B.x], ys = [0, geom.T.y, geom.B.y];
-    const xmax = Math.max(...xs) * 1.15 || 1;
-    const ymax = Math.max(...ys) * 1.15 || 1;
-    const sx = (vb.width - 2 * pad) / xmax;
-    const sy = (vb.height - 2 * pad) / ymax;
-    const s = Math.min(sx, sy);
-    return (x, y) => ({ X: pad + x * s, Y: vb.height - pad - y * s });
+    const xmin = Math.min(...xs), xmax = Math.max(...xs);
+    const ymin = Math.min(...ys), ymax = Math.max(...ys);
+    const xspan = (xmax - xmin) * 1.1 || 1;
+    const yspan = (ymax - ymin) * 1.1 || 1;
+    const s = Math.min((vb.width - 2 * pad) / xspan, (vb.height - 2 * pad) / yspan);
+    return (x, y) => ({ X: pad + (x - xmin) * s, Y: vb.height - pad - (y - ymin) * s });
   }
 
   function drawSection(svg, ctx) {
