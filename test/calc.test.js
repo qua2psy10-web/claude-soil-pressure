@@ -87,3 +87,24 @@ test('geometry: θ>0 で有効ω上限が λ=atan(H/xT) になる', () => {
   assert.strictEqual(TW.geometry({ H: 5, beta: 0, theta: 10 }, 85).valid, false); // ω>λ → 無効
   assert.strictEqual(TW.geometry({ H: 5, beta: 0, theta: 10 }, 70).valid, true);
 });
+
+test('solveWedge: θ=0 は従来と不変（Rankine P=75 回帰）', () => {
+  assert.ok(Math.abs(TW.solveWedge(P_BASE, 60).P - 75.0) < 1e-6); // P_BASEはtheta無し→0
+});
+
+test('coulombKa: θ=0,δ=0,β=0,φ=30 で 1/3', () => {
+  assert.ok(Math.abs(TW.coulombKa(30, 0, 0, 0) - 1 / 3) < 1e-9);
+});
+
+test('傾斜壁: 試行楔法スイープの最大が Coulomb 一般式と一致（θ=10）', () => {
+  const p = { H: 5, gamma: 18, phi: 30, delta: 15, c: 0, q: 0, beta: 0, theta: 10 };
+  const s = TW.sweep(p, { step: 0.05 });
+  const theory = 0.5 * 18 * 25 * TW.coulombKa(30, 15, 0, -10); // 本アプリのθ(+)=Dasの−θ
+  assert.ok(Math.abs(s.Pa - theory) / theory < 0.01, `Pa=${s.Pa} theory=${theory}`);
+});
+
+test('傾斜壁: θを増やすと Pₐ が減る（土側に倒れる壁）', () => {
+  const p0 = { H: 5, gamma: 18, phi: 30, delta: 15, c: 0, q: 0, beta: 0, theta: 0 };
+  const p10 = { ...p0, theta: 10 };
+  assert.ok(TW.sweep(p10, { step: 0.1 }).Pa < TW.sweep(p0, { step: 0.1 }).Pa);
+});

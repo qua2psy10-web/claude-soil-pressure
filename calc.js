@@ -30,13 +30,16 @@
     const { gamma, phi, delta, c, q } = p;
 
     const W = gamma * g.A;
-    const Q = q * g.xB;
+    const Q = q * (g.xB - g.xT);
     const V = W + Q;
     const C = c * g.L;
 
     const rAng = omega + 90 - phi; // R の向き（度）
-    const a1 = cosDeg(delta), b1 = cosDeg(rAng), d1 = -C * cosDeg(omega);
-    const a2 = sinDeg(delta), b2 = sinDeg(rAng), d2 = V - C * sinDeg(omega);
+    const nWall = Math.atan2(-g.xT, p.H) * 180 / Math.PI; // 壁面法線角（度）
+    const pAng = nWall + delta; // P の向き（度）
+
+    const a1 = cosDeg(pAng), b1 = cosDeg(rAng), d1 = -C * cosDeg(omega);
+    const a2 = sinDeg(pAng), b2 = sinDeg(rAng), d2 = V - C * sinDeg(omega);
     const det = a1 * b2 - a2 * b1;
     const P = (d1 * b2 - d2 * b1) / det;
     const R = (a1 * d2 - a2 * d1) / det;
@@ -45,7 +48,7 @@
       { label: 'V', fx: 0, fy: -V },
       { label: 'C', fx: C * cosDeg(omega), fy: C * sinDeg(omega) },
       { label: 'R', fx: R * cosDeg(rAng), fy: R * sinDeg(rAng) },
-      { label: 'P', fx: P * cosDeg(delta), fy: P * sinDeg(delta) },
+      { label: 'P', fx: P * cosDeg(pAng), fy: P * sinDeg(pAng) },
     ];
 
     return { valid: true, geom: g, W, Q, V, C, L: g.L, A: g.A, P, R, omega, vectors };
@@ -54,6 +57,13 @@
   function rankineKa(phi) {
     const t = tanDeg(45 - phi / 2);
     return t * t;
+  }
+
+  function coulombKa(phi, delta, beta, theta) {
+    const num = Math.pow(cosDeg(phi - theta), 2);
+    const root = Math.sqrt(sinDeg(phi + delta) * sinDeg(phi - beta) / (cosDeg(delta + theta) * cosDeg(theta - beta)));
+    const den = Math.pow(cosDeg(theta), 2) * cosDeg(delta + theta) * Math.pow(1 + root, 2);
+    return num / den;
   }
 
   function sweep(p, opts = {}) {
@@ -73,7 +83,7 @@
     return { omegas, Ps, Pa: Math.max(Pa, 0), PaRaw: Pa, omegaCrit };
   }
 
-  const api = { deg2rad, tanDeg, sinDeg, cosDeg, geometry, solveWedge, rankineKa, sweep };
+  const api = { deg2rad, tanDeg, sinDeg, cosDeg, geometry, solveWedge, rankineKa, coulombKa, sweep };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.TrialWedge = api;
