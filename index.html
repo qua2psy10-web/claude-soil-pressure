@@ -74,9 +74,23 @@
              delta: state.delta, c: state.c, q: state.q, beta: state.beta };
   }
 
+  function validate(p) {
+    const msgs = [];
+    if (!(p.H > 0)) msgs.push('壁高 H は正の値にしてください。');
+    if (!(p.gamma > 0)) msgs.push('単位体積重量 γ は正の値にしてください。');
+    if (p.phi < 0 || p.phi > 45) msgs.push('内部摩擦角 φ は 0〜45° の範囲で。');
+    if (p.delta < 0 || p.delta > p.phi) msgs.push('壁面摩擦角 δ は 0〜φ の範囲が一般的です。');
+    if (p.c < 0) msgs.push('粘着力 c は 0 以上にしてください。');
+    if (p.beta < 0 || p.beta >= p.phi) msgs.push('裏込め勾配 β は 0〜φ 未満にしてください。');
+    return msgs;
+  }
   function recompute() {
     readInputs();
     const p = params();
+    const errBox = document.getElementById('err');
+    const msgs = validate(p);
+    errBox.textContent = msgs.join(' ');
+    if (msgs.length) return;
     const sweepRes = TW.sweep(p, { step: 0.25 });
     const wedge = TW.solveWedge(p, state.omega);
     window.Render.drawAll({ p, omega: state.omega, wedge, sweepRes });
