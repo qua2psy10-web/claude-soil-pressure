@@ -25,3 +25,25 @@ test('geometry: ω<=β または ω>=90 は無効', () => {
   assert.strictEqual(TW.geometry({ H: 5, beta: 10 }, 10).valid, false);
   assert.strictEqual(TW.geometry({ H: 5, beta: 0 }, 90).valid, false);
 });
+
+const P_BASE = { H: 5, gamma: 18, phi: 30, delta: 0, c: 0, q: 0, beta: 0 };
+
+test('solveWedge: Rankine一致（c=δ=β=0, φ=30, ω=60 で P=75）', () => {
+  const r = TW.solveWedge(P_BASE, 60);
+  assert.ok(r.valid);
+  assert.ok(Math.abs(r.P - 75.0) < 1e-6, `P=${r.P}`);
+});
+
+test('solveWedge: 4力ベクトルの総和がゼロ（つり合い閉合）', () => {
+  const r = TW.solveWedge(P_BASE, 55);
+  const sx = r.vectors.reduce((s, v) => s + v.fx, 0);
+  const sy = r.vectors.reduce((s, v) => s + v.fy, 0);
+  assert.ok(Math.abs(sx) < 1e-6, `sx=${sx}`);
+  assert.ok(Math.abs(sy) < 1e-6, `sy=${sy}`);
+});
+
+test('solveWedge: 粘着力を入れると同じωでPが小さくなる', () => {
+  const noC = TW.solveWedge(P_BASE, 60).P;
+  const withC = TW.solveWedge({ ...P_BASE, c: 10 }, 60).P;
+  assert.ok(withC < noC, `withC=${withC} !< noC=${noC}`);
+});

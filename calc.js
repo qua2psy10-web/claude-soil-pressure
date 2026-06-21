@@ -20,7 +20,34 @@
     };
   }
 
-  const api = { deg2rad, tanDeg, sinDeg, cosDeg, geometry };
+  function solveWedge(p, omega) {
+    const g = geometry(p, omega);
+    if (!g.valid) return { valid: false };
+    const { gamma, phi, delta, c, q } = p;
+
+    const W = gamma * g.A;
+    const Q = q * g.xB;
+    const V = W + Q;
+    const C = c * g.L;
+
+    const rAng = omega + 90 - phi; // R の向き（度）
+    const a1 = cosDeg(delta), b1 = cosDeg(rAng), d1 = -C * cosDeg(omega);
+    const a2 = sinDeg(delta), b2 = sinDeg(rAng), d2 = V - C * sinDeg(omega);
+    const det = a1 * b2 - a2 * b1;
+    const P = (d1 * b2 - d2 * b1) / det;
+    const R = (a1 * d2 - a2 * d1) / det;
+
+    const vectors = [
+      { label: 'V', fx: 0, fy: -V },
+      { label: 'C', fx: C * cosDeg(omega), fy: C * sinDeg(omega) },
+      { label: 'R', fx: R * cosDeg(rAng), fy: R * sinDeg(rAng) },
+      { label: 'P', fx: P * cosDeg(delta), fy: P * sinDeg(delta) },
+    ];
+
+    return { valid: true, geom: g, W, Q, V, C, L: g.L, A: g.A, P, R, omega, vectors };
+  }
+
+  const api = { deg2rad, tanDeg, sinDeg, cosDeg, geometry, solveWedge };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.TrialWedge = api;
