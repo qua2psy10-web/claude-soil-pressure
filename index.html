@@ -42,6 +42,8 @@
       <label><span>上載荷重 q (kN/m²)</span><input type="number" id="q" value="0" step="1" min="0"></label>
       <label><span>裏込め勾配 β (°)</span><input type="number" id="beta" value="0" step="1" min="0" max="30"></label>
       <label><span>壁背面傾斜 θ (°)（負=オーバーハング）</span><input type="number" id="theta" value="0" step="1" min="-25" max="25"></label>
+      <label><span>地下水位 Hw (m)</span><input type="number" id="Hw" value="0" step="0.5" min="0"></label>
+      <label><span>水の単位体積重量 γw (kN/m³)</span><input type="number" id="gammaw" value="9.8" step="0.1" min="0"></label>
     </div>
     <div class="omega-row">
       <label><span>試行くさび角 ω = <span class="val" id="omegaVal">45</span>°</span>
@@ -62,7 +64,7 @@
 <script src="render.js"></script>
 <script>
   const TW = window.TrialWedge;
-  const ids = ['H', 'gamma', 'phi', 'delta', 'c', 'q', 'beta', 'theta', 'omega'];
+  const ids = ['H', 'gamma', 'phi', 'delta', 'c', 'q', 'beta', 'theta', 'Hw', 'gammaw', 'omega'];
   const state = {};
 
   function readInputs() {
@@ -72,7 +74,8 @@
 
   function params() {
     return { H: state.H, gamma: state.gamma, phi: state.phi,
-             delta: state.delta, c: state.c, q: state.q, beta: state.beta, theta: state.theta };
+             delta: state.delta, c: state.c, q: state.q, beta: state.beta, theta: state.theta,
+             Hw: state.Hw, gammaw: state.gammaw };
   }
 
   function validate(p) {
@@ -85,6 +88,8 @@
     if (p.beta < 0 || p.beta >= p.phi) msgs.push('裏込め勾配 β は 0〜φ 未満にしてください。');
     if (p.theta < -25 || p.theta > 25) msgs.push('壁背面傾斜 θ は −25〜25° の範囲で。');
     if (TW.tanDeg(p.theta) * TW.tanDeg(p.beta) >= 1) msgs.push('θ と β の組み合わせが幾何的に成立しません。');
+    if (p.Hw < 0 || p.Hw > p.H) msgs.push('地下水位 Hw は 0〜H(壁高) の範囲で。');
+    if (p.gammaw < 0) msgs.push('水の単位体積重量 γw は 0 以上で。');
     return msgs;
   }
   function recompute() {

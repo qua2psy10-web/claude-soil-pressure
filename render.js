@@ -32,6 +32,15 @@
     svg.appendChild(el('line', { x1: O.X, y1: O.Y, x2: T.X, y2: T.Y, stroke: '#234', 'stroke-width': 4 }));
     svg.appendChild(el('line', { x1: T.X, y1: T.Y, x2: B.X, y2: B.Y, stroke: '#386641', 'stroke-width': 2 }));
     svg.appendChild(el('line', { x1: O.X, y1: O.Y, x2: B.X, y2: B.Y, stroke: '#b00', 'stroke-width': 2, 'stroke-dasharray': '6 4' }));
+    // 地下水位線（Hw>0 のとき）
+    const Hw = Math.min(ctx.p.Hw || 0, ctx.p.H);
+    if (Hw > 0) {
+      const wl = m(0, Hw), wr = m(g.B.x, Hw);
+      svg.appendChild(el('line', { x1: wl.X, y1: wl.Y, x2: wr.X, y2: wr.Y, stroke: '#1e88e5', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }));
+      const wt = el('text', { x: wr.X - 70, y: wl.Y - 4, 'font-size': 11, fill: '#1e88e5' });
+      wt.textContent = '地下水位';
+      svg.appendChild(wt);
+    }
     const lbl = el('text', { x: O.X + 14, y: O.Y - 8, 'font-size': 13, fill: '#b00' });
     lbl.textContent = `ω=${ctx.omega}°`;
     svg.appendChild(lbl);
@@ -100,6 +109,14 @@
     return best;
   }
 
+  function critPh(ctx) {
+    const wc = ctx.sweepRes.omegaCrit;
+    if (wc == null) return 0;
+    const r = window.TrialWedge.solveWedge(ctx.p, wc);
+    if (!r.valid) return 0;
+    return r.vectors[3].fx; // P の水平成分（vectors=[V,C,R,P]）
+  }
+
   function explain(div, ctx) {
     const w = ctx.wedge;
     if (!w.valid) { div.innerHTML = '<p style="color:#b00">この ω では有効なくさびになりません（β &lt; ω &lt; 90 にしてください）。</p>'; return; }
@@ -108,12 +125,13 @@
     div.innerHTML = `
       <ol style="font-size:13px;line-height:1.7;padding-left:18px">
         <li><b>くさびの幾何</b>：すべり面長 L = xB/cosω = ${f(g.xB)}/cos${o}° = <b>${f(g.L)} m</b>、面積 A = ½·xB·H = <b>${f(g.A)} m²</b></li>
-        <li><b>自重 W</b> = γ·A = ${f(p.gamma)}×${f(g.A)} = <b>${f(w.W)} kN/m</b>${p.q ? `、上載 Q = q·xB = ${f(w.Q)} kN/m` : ''}（合計鉛直 V = <b>${f(w.V)} kN/m</b>）</li>
+        <li><b>自重</b>：総自重 γ·A = ${f(w.W)} kN/m${p.Hw > 0 ? `、水位以下の浮力 −γw·Aw = −${f(p.gammaw * w.Aw)} kN/m → <b>有効自重 W_eff = ${f(w.Weff)} kN/m</b>` : ''}${p.q ? `、上載 Q = ${f(w.Q)} kN/m` : ''}（合計鉛直 V = <b>${f(w.V)} kN/m</b>）</li>
         <li><b>粘着力 C</b> = c·L = ${f(p.c)}×${f(g.L)} = <b>${f(w.C)} kN/m</b></li>
         <li><b>力のつり合い</b>（V・C・R・P の多角形が閉じる）から <b>P = ${f(w.P)} kN/m</b>（反力 R = ${f(w.R)} kN/m）</li>
+        ${p.Hw > 0 ? `<li><b>静水圧</b>：壁に作用する水圧 Pw = ½γw·Hw² = <b>${f(w.Pw)} kN/m</b>（下端から Hw/3）</li>` : ''}
         <li><b>試行</b>：ω を変えると右上の P–ω 曲線が動きます。最大の P が<b>主働土圧 Pₐ</b>です。</li>
       </ol>
-      <p style="font-size:12px;color:#556">現在の最大：Pₐ = <b>${ctx.sweepRes.Pa.toFixed(2)} kN/m</b>（臨界 ω = ${ctx.sweepRes.omegaCrit?.toFixed(1)}°、作用位置 = 下端から H/3 = ${(p.H / 3).toFixed(2)} m）</p>`;
+      <p style="font-size:12px;color:#556">現在の最大：Pₐ = <b>${ctx.sweepRes.Pa.toFixed(2)} kN/m</b>（臨界 ω = ${ctx.sweepRes.omegaCrit?.toFixed(1)}°、作用位置 = 下端から H/3 = ${(p.H / 3).toFixed(2)} m）${p.Hw > 0 ? `<br>有効土圧の水平成分 ${critPh(ctx).toFixed(2)} ＋ 静水圧 ${w.Pw.toFixed(2)} = <b>全水平土圧 ${(critPh(ctx) + w.Pw).toFixed(2)} kN/m</b>` : ''}</p>`;
   }
 
   function drawAll(ctx) {
