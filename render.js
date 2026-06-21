@@ -37,8 +37,35 @@
     svg.appendChild(lbl);
   }
 
+  function drawForcePolygon(svg, ctx) {
+    clear(svg);
+    if (!ctx.wedge.valid) return;
+    const vecs = ctx.wedge.vectors; // V, C, R, P
+    const vb = svg.viewBox.baseVal;
+    let x = 0, y = 0;
+    const pts = [{ x, y }];
+    for (const v of vecs) { x += v.fx; y += v.fy; pts.push({ x, y }); }
+    const xsArr = pts.map((p) => p.x), ysArr = pts.map((p) => p.y);
+    const minX = Math.min(...xsArr), maxX = Math.max(...xsArr);
+    const minY = Math.min(...ysArr), maxY = Math.max(...ysArr);
+    const pad = 30;
+    const sx = (vb.width - 2 * pad) / ((maxX - minX) || 1);
+    const sy = (vb.height - 2 * pad) / ((maxY - minY) || 1);
+    const s = Math.min(sx, sy);
+    const map = (p) => ({ X: pad + (p.x - minX) * s, Y: vb.height - pad - (p.y - minY) * s });
+    const colors = { V: '#234', C: '#386641', R: '#0066b3', P: '#b00' };
+    for (let i = 0; i < vecs.length; i++) {
+      const a = map(pts[i]), b = map(pts[i + 1]);
+      svg.appendChild(el('line', { x1: a.X, y1: a.Y, x2: b.X, y2: b.Y, stroke: colors[vecs[i].label], 'stroke-width': 2.5 }));
+      const t = el('text', { x: (a.X + b.X) / 2 + 4, y: (a.Y + b.Y) / 2, 'font-size': 12, fill: colors[vecs[i].label] });
+      t.textContent = vecs[i].label;
+      svg.appendChild(t);
+    }
+  }
+
   function drawAll(ctx) {
     drawSection(document.getElementById('sectionSvg'), ctx);
+    drawForcePolygon(document.getElementById('polySvg'), ctx);
   }
-  window.Render = { drawAll, drawSection };
+  window.Render = { drawAll, drawSection, drawForcePolygon };
 })();
