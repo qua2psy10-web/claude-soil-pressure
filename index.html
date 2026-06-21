@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>試行楔法 土圧計算ウォーク</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; color: #1a1a1a; background: #f6f7f9; }
+  header { background: #234; color: #fff; padding: 12px 20px; }
+  header h1 { font-size: 18px; margin: 0; }
+  .wrap { display: grid; grid-template-columns: 280px 1fr; gap: 16px; padding: 16px; }
+  .panel { background: #fff; border: 1px solid #e2e5e9; border-radius: 8px; padding: 12px; }
+  .panel h2 { font-size: 14px; margin: 0 0 10px; color: #234; }
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: 12px; margin-bottom: 8px; }
+  label span { display: block; color: #556; margin-bottom: 2px; }
+  input[type=number] { width: 100%; box-sizing: border-box; padding: 4px 6px; }
+  .omega-row { margin-top: 8px; }
+  input[type=range] { width: 100%; }
+  .val { font-variant-numeric: tabular-nums; font-weight: 600; }
+  svg { width: 100%; height: auto; background: #fff; }
+  .err { color: #b00; font-size: 12px; min-height: 16px; }
+</style>
+</head>
+<body>
+<header><h1>試行楔法による土圧計算ウォーク</h1></header>
+<div class="wrap">
+  <section class="panel" id="inputs">
+    <h2>① 入力</h2>
+    <div class="grid4">
+      <label><span>壁高 H (m)</span><input type="number" id="H" value="5" step="0.5" min="0.5"></label>
+      <label><span>単位体積重量 γ (kN/m³)</span><input type="number" id="gamma" value="18" step="0.5" min="1"></label>
+      <label><span>内部摩擦角 φ (°)</span><input type="number" id="phi" value="30" step="1" min="0" max="45"></label>
+      <label><span>壁面摩擦角 δ (°)</span><input type="number" id="delta" value="15" step="1" min="0" max="30"></label>
+      <label><span>粘着力 c (kN/m²)</span><input type="number" id="c" value="0" step="1" min="0"></label>
+      <label><span>上載荷重 q (kN/m²)</span><input type="number" id="q" value="0" step="1" min="0"></label>
+      <label><span>裏込め勾配 β (°)</span><input type="number" id="beta" value="0" step="1" min="0" max="30"></label>
+    </div>
+    <div class="omega-row">
+      <label><span>試行くさび角 ω = <span class="val" id="omegaVal">45</span>°</span>
+        <input type="range" id="omega" min="1" max="89" value="45" step="0.5"></label>
+    </div>
+    <button id="autoBtn">最大値を自動で探す</button>
+    <div class="err" id="err"></div>
+  </section>
+
+  <section>
+    <div class="panel"><h2>② 断面図</h2><svg id="sectionSvg" viewBox="0 0 480 320"></svg></div>
+    <div class="panel" style="margin-top:16px"><h2>③ 力の多角形</h2><svg id="polySvg" viewBox="0 0 360 280"></svg></div>
+    <div class="panel" style="margin-top:16px"><h2>④ P–ω 曲線</h2><svg id="curveSvg" viewBox="0 0 480 240"></svg></div>
+    <div class="panel" style="margin-top:16px"><h2>ステップ解説</h2><div id="explain"></div></div>
+  </section>
+</div>
+<script src="calc.js"></script>
+<script src="render.js"></script>
+<script>
+  const TW = window.TrialWedge;
+  const ids = ['H', 'gamma', 'phi', 'delta', 'c', 'q', 'beta', 'omega'];
+  const state = {};
+
+  function readInputs() {
+    for (const id of ids) state[id] = parseFloat(document.getElementById(id).value);
+    document.getElementById('omegaVal').textContent = state.omega;
+  }
+
+  function params() {
+    return { H: state.H, gamma: state.gamma, phi: state.phi,
+             delta: state.delta, c: state.c, q: state.q, beta: state.beta };
+  }
+
+  function recompute() {
+    readInputs();
+    const p = params();
+    const sweepRes = TW.sweep(p, { step: 0.25 });
+    const wedge = TW.solveWedge(p, state.omega);
+    window.Render.drawAll({ p, omega: state.omega, wedge, sweepRes });
+  }
+
+  ids.forEach((id) => document.getElementById(id).addEventListener('input', recompute));
+  document.addEventListener('DOMContentLoaded', recompute);
+</script>
+</body>
+</html>
